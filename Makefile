@@ -13,8 +13,8 @@ CFLAGS += -DBAUD=${BAUD}
 
 VPATH	=
 PROG	= rpt
-GENSRCS	= sintable.c morsetab.c morse.c
-SRCS	= main.c serial.c $(GENSRCS)
+GENSRCS	= sintable.c morsetab.c
+SRCS	= main.c serial.c morse.c $(GENSRCS)
 OBJS	= $(SRCS:.c=.o)
 DEPS	= $(SRCS:.c=.d)
 
