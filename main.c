@@ -12,14 +12,14 @@
 #define TX_PTT_PORT PORTD
 #define TX_PTT_PIN 2
 
-#define ID_INTERVAL 600
-#define ID_PTTON_DELAY 1
-#define ID_SEND_TIME 5
-#define ID_PTTOFF_DELAY 1
+#define ID_INTERVAL 1800
+#define ID_PTTON_DELAY 0
+#define ID_SEND_TIME 4
+#define ID_PTTOFF_DELAY 0
 
 char *callsign = "SM0UTY/R";
 uint16_t id_timer;
-uint8_t courtesy_timer;
+uint16_t courtesy_timer;
 
 enum {
     IdState_Idle,
@@ -29,7 +29,7 @@ enum {
 } id_state;
 
 static inline uint8_t rx_signal() {
-    return (RX_SIGNAL_PORT & (1 << RX_SIGNAL_PIN)) != 0;
+    return (RX_SIGNAL_PORT & (1 << RX_SIGNAL_PIN)) == 0;
 }
 
 uint8_t ptt_status;
@@ -54,7 +54,7 @@ void rpt_tick() {
         hang_timer = 15;
 
     if ((rx == 1) && (prev_rx == 0))
-        courtesy_timer = 2;
+        courtesy_timer = 7812/2;
 
     if ((rx == 0) && (prev_rx == 1) && (id_state == IdState_Idle)) {
         if (courtesy_timer == 0) {
@@ -69,15 +69,24 @@ void rpt_tick() {
         ptt(0);
     }
 
+    if (courtesy_timer > 0)
+        courtesy_timer --;
+
+    if (morse_active()) {
+        PORTB &= ~1;
+    } else {
+        if (rx_signal())
+            PORTB |= 1;
+        else
+            PORTB &= ~1;
+    }
+
     prev_rx = rx;
 }
 
 void tick_1hz() {
     if (hang_timer > 0)
         hang_timer --;
-
-    if (courtesy_timer > 0)
-        courtesy_timer --;
 
     if (id_timer > 0)
         id_timer --;
@@ -112,27 +121,18 @@ void tick_1hz() {
 
 void timer0_init() {
     TCCR0A = (1<<COM0A1) | (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);
-    TCCR0B = (0<<WGM02) | (1<<CS01);
+    TCCR0B = (0<<WGM02) | (1<<CS00);
     OCR0A = 127;
     OCR0B = 0;
     TIMSK0 = (1 << TOIE0);
 }
 
-static uint16_t tick_1000hz;
 ISR(TIMER0_OVF_vect) {
-    static uint16_t cnt_1000hz = 0;
-    cnt_1000hz += 7812;
-    if (++cnt_1000hz > 62500) {
-        //PORTB ^= 2;
-        cnt_1000hz -= 62500;
-        tick_1000hz++;
-    }
-
     static uint16_t cnt_1hz = 0;
     cnt_1hz += 1;
-    if (cnt_1hz > 7812) {
+    if (cnt_1hz > 62500) {
         //PORTB ^= 2;
-        cnt_1hz -= 7812;
+        cnt_1hz -= 62500;
         tick_1hz();
     }
 
@@ -159,7 +159,11 @@ int main(void) {
 
     //DDRB = 0b00000110;
     DDRD = 0b01100000;
-    DDRD |= TX_PTT_PIN;
+    DDRD |= 1 << TX_PTT_PIN;
+    PORTD |= 1 << RX_SIGNAL_PIN;
+
+    DDRB |= 1 << 0;
+    PORTB |= 1 << 0;
 
     while(1) {
         _delay_ms(100);

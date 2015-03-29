@@ -4,7 +4,7 @@
 
 #include "morse.h"
 
-#define MORSE_PERIOD 450
+#define MORSE_PERIOD 3000
 #define MORSE_QUEUE_LEN 16
 
 char morse_queue[MORSE_QUEUE_LEN];
@@ -26,19 +26,23 @@ uint8_t morse_cur_char = 0;
 uint16_t morse_beep = 0;
 uint16_t morse_silent = 0;
 
+uint8_t morse_active() {
+    return (morse_beep > 0) || (morse_silent > 0);
+}
+
 void morse_tick() {
     if (morse_beep > 0) {
         static uint16_t cntsin;
-        cntsin += 13*8;
+        cntsin += 13;
         if (cntsin >= 1024)
             cntsin -= 1024;
-        OCR0B = 128 + (sintable[cntsin]);
+        OCR0B = 128 + (sintable[cntsin] >> 3);
         morse_beep --;
         return;
     }
 
     if (morse_silent > 0) {
-//        OCR0B = 128;
+        OCR0B = 128;
         morse_silent --;
         return;
     }
@@ -67,10 +71,10 @@ void morse_tick() {
                 morse_cur_char = 0;
             } else {
                 morse_cur_char = morsechar(c);
+                return;
             }
         }
     }
 
-    OCR0B = 128;
     return;
 }
