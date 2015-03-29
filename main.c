@@ -12,7 +12,7 @@
 #define TX_PTT_PORT PORTD
 #define TX_PTT_PIN 2
 
-#define ID_INTERVAL 300
+#define ID_INTERVAL 3600
 #define ID_PTTON_DELAY 1
 #define ID_SEND_TIME 4
 #define ID_PTTOFF_DELAY 0
