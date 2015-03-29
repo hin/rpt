@@ -12,10 +12,14 @@
 #define TX_PTT_PORT PORTD
 #define TX_PTT_PIN 2
 
-#define ID_INTERVAL 1800
-#define ID_PTTON_DELAY 0
+#define ID_INTERVAL 300
+#define ID_PTTON_DELAY 1
 #define ID_SEND_TIME 4
 #define ID_PTTOFF_DELAY 0
+
+#define FAN_PIN 2
+#define FAN_PORT PORTB
+#define FAN_DDR DDRB
 
 char *callsign = "SM0UTY/R";
 uint16_t id_timer;
@@ -28,12 +32,21 @@ enum {
     IdState_Wait
 } id_state;
 
+void fan(uint8_t on) {
+    if (on) {
+        FAN_PORT |= 1 << FAN_PIN;
+    } else {
+        FAN_PORT &= ~(1 << FAN_PIN);
+    }
+}
+
 static inline uint8_t rx_signal() {
     return (RX_SIGNAL_PORT & (1 << RX_SIGNAL_PIN)) == 0;
 }
 
 uint8_t ptt_status;
 void ptt(uint8_t on) {
+    fan(on);
     if (ptt_status != on) {
         printf("ptt %d -> %d\r\n", ptt_status, on);
         ptt_status = on;
@@ -161,6 +174,8 @@ int main(void) {
     DDRD = 0b01100000;
     DDRD |= 1 << TX_PTT_PIN;
     PORTD |= 1 << RX_SIGNAL_PIN;
+
+    FAN_DDR |= 1 << FAN_PIN;
 
     DDRB |= 1 << 0;
     PORTB |= 1 << 0;
